@@ -9,7 +9,12 @@
 
 ## 📹 Demo Video
 
-[Watch the AI Text Processing System in action](https://your-video-link-here)
+<video width="100%" controls>
+  <source src="ai-text-processing-demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+**Direct Download**: [ai-text-processing-demo.mp4](ai-text-processing-demo.mp4)
 
 ## Overview
 
