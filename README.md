@@ -443,7 +443,7 @@ For issues, questions, or suggestions:
 
 1. **Open an Issue**: [GitHub Issues](https://github.com/yourusername/AITextProcessingSystem/issues)
 2. **Discussions**: [GitHub Discussions](https://github.com/yourusername/AITextProcessingSystem/discussions)
-3. **Email**: your.email@example.com
+3. **Email**: taosifseaum@gmail.com
 
 ---
 
