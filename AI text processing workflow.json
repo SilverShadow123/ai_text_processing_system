@@ -1,0 +1,416 @@
+{
+  "name": "AI text processing workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5f352754-79be-4808-bd5b-fe055bbe4493",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "673b003b-5f88-46b4-ba37-8ff0fea7ffd1",
+      "name": "Webhook",
+      "webhookId": "5f352754-79be-4808-bd5b-fe055bbe4493"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "220dad21-cc49-425e-a9b8-be1bf151a934",
+              "leftValue": "={{ $json.body.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "ab34a5f4-6b08-4020-9d93-09a6652f3ad5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "587dae57-cb67-4f5c-8893-9922f04aed14",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const rawHtml = $input.item.json.data || \"\";\n\n// Remove HTML tags\nlet text = rawHtml.replace(/<[^>]*>/g, \"\");\n\n// Decode common HTML entities\ntext = text\n  .replace(/&nbsp;/g, \" \")\n  .replace(/&amp;/g, \"&\")\n  .replace(/&lt;/g, \"<\")\n  .replace(/&gt;/g, \">\")\n  .replace(/&quot;/g, '\"')\n  .replace(/&#39;/g, \"'\");\n\n// Collapse extra whitespace and newlines\ntext = text.replace(/\\s+/g, \" \").trim();\n\nreturn {\n  json: {\n    ...$input.item.json.body,   // ✅ spread from body, not top level\n    processed_text: text\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "dfa2bd3e-f8b1-48b8-973c-989b7a6dec2c",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json.body;\n\nreturn {\n  json: {\n    ...item,\n    processed_text: item.text || \"\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        96
+      ],
+      "id": "77dd72f8-df63-4165-988c-fb975427974c",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "fa373c35-d2d9-49b5-a257-d6753502df30",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "deepseek/deepseek-v3.2",
+          "mode": "list",
+          "cachedResultName": "DEEPSEEK/DEEPSEEK-V3.2"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional text summarizer. \nYour job is to summarize the given text clearly and concisely in 2-4 sentences. \nReturn only the summary, no extra explanation."
+            },
+            {
+              "content": "=Summarize the following text:\n\n{{ $json.processed_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "store": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "fca53dd3-8a63-4f1d-bd86-ca5425e637c7",
+      "name": "Summerize the Content",
+      "credentials": {
+        "openAiApi": {
+          "id": "De3u15J8LtwIHqkT",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert at extracting key information from text.\nYour job is to extract exactly 3 key points from the given text.\nReturn them as a numbered list like:\n1. ...\n2. ...\n3. ...\nReturn only the list, no intro or extra explanation."
+            },
+            {
+              "content": "=Extract 3 key points from the following text:\n\n{{ $('Merge').item.json.processed_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "a4e040f7-a36e-4aca-afda-aaea21ec7838",
+      "name": "Key Points of the Content",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1vxAidciHUSPimNlShrevCeYxvYYdX_S6fLJGUPKHDYE",
+          "mode": "list",
+          "cachedResultName": "AI Text Processing Workflow",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vxAidciHUSPimNlShrevCeYxvYYdX_S6fLJGUPKHDYE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vxAidciHUSPimNlShrevCeYxvYYdX_S6fLJGUPKHDYE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session ID": "={{ $('Webhook').item.json.body.session_id }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Original Text": "={{ $('Merge').item.json.processed_text }}",
+            "Key Points": "={{ $json.output[0].content[0].text }}",
+            "Summary": "={{ $('Summerize the Content').item.json.output[0].content[0].text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Session ID",
+              "displayName": "Session ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Original Text",
+              "displayName": "Original Text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Key Points",
+              "displayName": "Key Points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        0
+      ],
+      "id": "f8c98a85-0321-458e-a78d-e2769dc2c17b",
+      "name": "Append Session ID, Email, Original Text, Key Points, Summary",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ltBEFNnY0tk6WHzl",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=Your AI Processing Results —  {{ $('Webhook').item.json.body.session_id }}",
+        "message": "=<h2>Hello,</h2>\n<p>Your text has been processed successfully. Here are your results:</p>\n<hr/>\n\n<h3>📝 Summary</h3>\n<p>{{ $('Summerize the Content').item.json.output[0].content[0].text }}</p>\n<hr/>\n\n<h3>🔑 Key Points</h3>\n<p>{{ $json.output[0].content[0].text.replace(/\\n/g, '<br/>') }}</p>\n<hr/>\n\n<p style=\"color: gray; font-size: 12px;\">\n  Session ID: {{ $('Webhook').item.json.body.session_id }}<br/>\n  Processed by AI Text Processing System\n</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        192
+      ],
+      "id": "bcdccfc8-0dbd-4829-85c0-6b51bd869e83",
+      "name": "Send Summary and Key Points",
+      "webhookId": "bcf2d42f-73dc-4115-a0d3-f06179193260",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ADCrS2ZDLvKHyA7b",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Summerize the Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summerize the Content": {
+      "main": [
+        [
+          {
+            "node": "Key Points of the Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Key Points of the Content": {
+      "main": [
+        [
+          {
+            "node": "Append Session ID, Email, Original Text, Key Points, Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Summary and Key Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "15ce335f-5067-4a09-ae8d-32764381eea4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "57b54efca75c58dfa44ca3b19d21dd5cca0b5ee583e3cc7a3c7774e318244272"
+  },
+  "id": "5InXxn1aXa8gyUc2",
+  "tags": []
+}
